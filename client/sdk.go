@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/chaincode"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
@@ -18,7 +17,7 @@ type HyperPayContract struct {
 }
 
 func NewHyperPayContract() (*HyperPayContract, error) {
-	os.Setenv("DISCOVERY_AS_LOCALHOST", "true")
+	//os.Setenv("DISCOVERY_AS_LOCALHOST", "true")
 	wallet, err := gateway.NewFileSystemWallet("wallet")
 	if err != nil {
 		return nil, err
@@ -29,12 +28,6 @@ func NewHyperPayContract() (*HyperPayContract, error) {
 		}
 	}
 	ccpPath := filepath.Join(
-		"..",
-		"..",
-		"test-network",
-		"organizations",
-		"peerOrganizations",
-		"org1.example.com",
 		"connection-org1.yaml",
 	)
 	gw, err := gateway.Connect(
@@ -84,14 +77,6 @@ func (contract HyperPayContract) Transfer(fromId, toId string, amount float32) e
 
 func populateWallet(wallet *gateway.Wallet) error {
 	credPath := filepath.Join(
-		"..",
-		"..",
-		"test-network",
-		"organizations",
-		"peerOrganizations",
-		"org1.example.com",
-		"users",
-		"User1@org1.example.com",
 		"msp",
 	)
 

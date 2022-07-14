@@ -16,8 +16,9 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
 	"github.com/spf13/cobra"
-	"github.com/tdewolff/parse/v2/strconv"
 )
 
 // transferCmd represents the transfer command
@@ -33,7 +34,18 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		source := args[0]
 		dest := args[1]
-		tokens := strconv.ParseFloat(args[2], 32)
+		var amount float32
+		_, err := fmt.Sscan(args[2], &amount)
+		if err != nil {
+			panic(err)
+		}
+		contract, err := client.NewHyperPayContract()
+		if err != nil {
+			panic(err)
+		}
+		if err := contract.Transfer(source, dest, amount); err != nil {
+			panic(err)
+		}
 	},
 }
 
