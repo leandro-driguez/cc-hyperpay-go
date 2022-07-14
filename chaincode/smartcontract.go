@@ -18,7 +18,7 @@ type SmartContract struct {
 // golang keeps the order when marshal to json but doesn't order automatically
 type Account struct {
 	ID      string  `json:"ID"`
-	Balance float32 `json:"PatientName float32"`
+	Balance float32 `json:"Balance float32"`
 	Bank    string  `json:"Bank string"`
 }
 
@@ -112,7 +112,7 @@ func (s *SmartContract) DeleteAccount(ctx contractapi.TransactionContextInterfac
 	}
 
 	//Here we check if the account belongs to the bank that is trying to delete it
-	account_existing, err := s.ReadAccount(ctx, id)
+	accountExisting, err := s.ReadAccount(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -120,8 +120,8 @@ func (s *SmartContract) DeleteAccount(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return errors.New("cannot get client's MSP-ID")
 	}
-	if (account_existing.Bank == "JPMorgan Chase & Co." && mspID == "Org1MSP") ||
-		(account_existing.Bank == "Bank of America Corp." && mspID == "Org2MSP") {
+	if (accountExisting.Bank == "JPMorgan Chase & Co." && mspID == "Org1MSP") ||
+		(accountExisting.Bank == "Bank of America Corp." && mspID == "Org2MSP") {
 		return errors.New("account does not belong to the executing org")
 	}
 
@@ -136,4 +136,52 @@ func (s *SmartContract) AccountExists(ctx contractapi.TransactionContextInterfac
 	}
 
 	return accountJSON != nil, nil
+}
+
+func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, fromId, toId string, amount float32) error {
+	// @todo q solo pueda hacer esto el duenyo d la cuenta fuente
+
+	if amount <= 0 {
+		return errors.New("amount must be positive")
+	}
+	fromAccJson, err := ctx.GetStub().GetState(fromId)
+	if err != nil {
+		return fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if fromAccJson == nil {
+		return errors.New("source account doesn't exist")
+	}
+	toAccJson, err := ctx.GetStub().GetState(toId)
+	if err != nil {
+		return fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if toAccJson == nil {
+		return errors.New("destination account doesn't exist")
+	}
+	var fromAcc Account
+	if err := json.Unmarshal(fromAccJson, &fromAcc); err != nil {
+		return err
+	}
+	if fromAcc.Balance < amount {
+		return fmt.Errorf("insufficient balance: %v", fromAcc.Balance)
+	}
+	var toAcc Account
+	if err := json.Unmarshal(toAccJson, &toAcc); err != nil {
+		return err
+	}
+	fromAcc.Balance -= amount
+	toAcc.Balance += amount
+
+	fromAccJson, err = json.Marshal(fromAcc)
+	if err != nil {
+		return err
+	}
+	if err := ctx.GetStub().PutState(fromId, fromAccJson); err != nil {
+		return err
+	}
+	toAccJson, err = json.Marshal(toAcc)
+	if err != nil {
+		return err
+	}
+	return ctx.GetStub().PutState(toId, toAccJson)
 }

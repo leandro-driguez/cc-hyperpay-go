@@ -1,4 +1,4 @@
-module github.com/hyperledger/fabric-samples/asset-transfer-basic/chaincode-go
+module github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer
 
 go 1.14
 
