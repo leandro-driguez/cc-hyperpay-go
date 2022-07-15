@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -24,7 +23,7 @@ type Account struct {
 }
 
 // InitLedger adds a base set of accounts to the ledger
-func (s *SmartContract) InitLedger(ctx CustomTransactionContextInterface) error {
+func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 
 	accounts := []Account{
 		{ID: "account1", Balance: 100, Bank: "JPMorgan Chase & Co."},
@@ -34,6 +33,7 @@ func (s *SmartContract) InitLedger(ctx CustomTransactionContextInterface) error 
 		{ID: "account5", Balance: 500, Bank: "JPMorgan Chase & Co."},
 	}
 
+	// For each account encoding and save it
 	for _, account := range accounts {
 		accountJSON, err := json.Marshal(account)
 		if err != nil {
@@ -49,11 +49,82 @@ func (s *SmartContract) InitLedger(ctx CustomTransactionContextInterface) error 
 	return nil
 }
 
+// AccountExists returns true when account with given ID exists in world state
+func (s *SmartContract) AccountExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return false, err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return false, err
+	}
+
+	accountJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if accountJSON == nil {
+		return false, fmt.Errorf("the account %s does not exist", id)
+	}
+
+	return accountJSON != nil, nil
+}
+
+// ReadAccount returns the account stored in the world state with given id.
+func (s *SmartContract) ReadAccount(ctx contractapi.TransactionContextInterface, id string) (*Account, error) {
+
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return nil, err
+	}
+
+	accountJSON, err := ctx.GetStub().GetState(id)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if accountJSON == nil {
+		return nil, fmt.Errorf("the account %s does not exist", id)
+	}
+
+	var account Account
+	err = json.Unmarshal(accountJSON, &account)
+	if err != nil {
+		return nil, err
+	}
+
+	return &account, nil
+}
+
 // CreateAccount issues a new account to the world state with given details.
-func (s *SmartContract) CreateAccount(ctx CustomTransactionContextInterface, id string, balance float32, bank string) error {
+func (s *SmartContract) CreateAccount(ctx contractapi.TransactionContextInterface, id string, balance float32, bank string) error {
 
-	exists := s.AccountExists(ctx, id)
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return err
+	}
 
+	exists, err := s.AccountExists(ctx, id)
+
+	if err != nil {
+		return err
+	}
 	if exists {
 		return fmt.Errorf("the account %s already exists", id)
 	}
@@ -63,32 +134,46 @@ func (s *SmartContract) CreateAccount(ctx CustomTransactionContextInterface, id 
 		Balance: balance,
 		Bank:    bank,
 	}
-	accountJSON, err := json.Marshal(account)
 
+	accountJSON, err := json.Marshal(account)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, accountJSON)
-}
-
-func (s *SmartContract) ReadAccount(ctx CustomTransactionContextInterface, id string) (*Account, error) {
-
-	contract := new(ReadonlySmartContract)
-	account, err := contract.ReadAccount(ctx, id)
-
+	err = ctx.GetStub().PutState(account.ID, accountJSON)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to put asset in public data: %v", err)
 	}
 
-	return account, nil
+	// Set the endorsement policy such that an owner org peer is required to endorse future updates
+	endorsingOrgs := []string{clientOrgID}
+	err = setAssetStateBasedEndorsement(ctx, account.ID, endorsingOrgs)
+	if err != nil {
+		return fmt.Errorf("failed setting state based endorsement for buyer and seller: %v", err)
+	}
+
+	return nil
 }
 
 // DeleteAccount deletes an given account from the world state.
-func (s *SmartContract) DeleteAccount(ctx CustomTransactionContextInterface, id string) error {
+func (s *SmartContract) DeleteAccount(ctx contractapi.TransactionContextInterface, id string) error {
 
-	exists := s.AccountExists(ctx, id)
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return err
+	}
 
+	exists, err := s.AccountExists(ctx, id)
+
+	if err != nil {
+		return err
+	}
 	if !exists {
 		return fmt.Errorf("the account %s does not exist", id)
 	}
@@ -96,31 +181,32 @@ func (s *SmartContract) DeleteAccount(ctx CustomTransactionContextInterface, id 
 	return ctx.GetStub().DelState(id)
 }
 
-// AccountExists returns true when account with given ID exists in world state
-func (s *SmartContract) AccountExists(ctx CustomTransactionContextInterface, id string) bool {
-
-	accountJSON := ctx.GetData()
-
-	return accountJSON != nil
-}
-
-func (s *SmartContract) Transfer(ctx CustomTransactionContextInterface, fromId, toId string, amount float32) error {
+func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, fromId, toId string, amount float32) error {
 	// @todo q solo pueda hacer esto el duenyo d la cuenta fuente
+
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return err
+	}
 
 	if amount <= 0 {
 		return errors.New("amount must be positive")
 	}
 
-	contract := new(ReadonlySmartContract)
-
-	fromAcc, err := contract.ReadAccount(ctx, fromId)
+	fromAcc, err := s.ReadAccount(ctx, fromId)
 	if err != nil {
 		return errors.New("source account doesn't exist")
 	}
 
-	toAcc, err := contract.ReadAccount(ctx, toId)
+	toAcc, err := s.ReadAccount(ctx, toId)
 	if err != nil {
-		return errors.New("source account doesn't exist")
+		return errors.New("destination account doesn't exist")
 	}
 
 	fromAcc.Balance -= amount
@@ -141,37 +227,4 @@ func (s *SmartContract) Transfer(ctx CustomTransactionContextInterface, fromId, 
 	}
 
 	return ctx.GetStub().PutState(toId, toAccJson)
-}
-
-func beforeTransaction(ctx CustomTransactionContextInterface) error {
-
-	mspID, err := ctx.GetClientIdentity().GetMSPID()
-	if err != nil {
-		return errors.New("cannot get client's MSP-ID")
-	}
-
-	functionName, params := ctx.GetStub().GetFunctionAndParameters()
-
-	if strings.Contains(functionName, "ReadAccount") {
-		// aqui podemos hacer algo solo si se invoco la Tx ReadAccount
-		return nil
-	}
-
-	contract := new(ReadonlySmartContract)
-	account, err := contract.ReadAccount(ctx, params[0])
-
-	if err != nil {
-		return err
-	}
-
-	if (account.Bank == "JPMorgan Chase & Co." && mspID == "Org1MSP") ||
-		(account.Bank == "Bank of America Corp." && mspID == "Org2MSP") {
-		return errors.New("account does not belong to the executing org")
-	}
-
-	return nil
-}
-
-func afterTransaction(ctx CustomTransactionContextInterface, iface interface{}) error {
-	return nil
 }

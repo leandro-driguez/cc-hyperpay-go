@@ -13,9 +13,6 @@ import (
 
 func main() {
 	smartContract := new(chaincode.SmartContract)
-	smartContract.TransactionContextHandler = new(chaincode.CustomTransactionContext)
-	smartContract.BeforeTransaction = chaincode.GetWorldState
-	smartContract.UnknownTransaction = chaincode.UnknownTransactionHandler
 
 	accountChaincode, err := contractapi.NewChaincode(smartContract)
 
