@@ -24,6 +24,7 @@ type Account struct {
 
 // InitLedger adds a base set of accounts to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
+
 	accounts := []Account{
 		{ID: "account1", Balance: 100, Bank: "JPMorgan Chase & Co."},
 		{ID: "account2", Balance: 200, Bank: "Bank of America Corp."},
@@ -32,6 +33,7 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 		{ID: "account5", Balance: 500, Bank: "JPMorgan Chase & Co."},
 	}
 
+	// For each account encoding and save it
 	for _, account := range accounts {
 		accountJSON, err := json.Marshal(account)
 		if err != nil {
@@ -47,9 +49,47 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 	return nil
 }
 
+// AccountExists returns true when account with given ID exists in world state
+func (s *SmartContract) AccountExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return false, err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return false, err
+	}
+
+	accountJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if accountJSON == nil {
+		return false, fmt.Errorf("the account %s does not exist", id)
+	}
+
+	return accountJSON != nil, nil
+}
+
 // ReadAccount returns the account stored in the world state with given id.
 func (s *SmartContract) ReadAccount(ctx contractapi.TransactionContextInterface, id string) (*Account, error) {
+
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return nil, err
+	}
+
 	accountJSON, err := ctx.GetStub().GetState(id)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to read from world state: %v", err)
 	}
@@ -68,17 +108,20 @@ func (s *SmartContract) ReadAccount(ctx contractapi.TransactionContextInterface,
 
 // CreateAccount issues a new account to the world state with given details.
 func (s *SmartContract) CreateAccount(ctx contractapi.TransactionContextInterface, id string, balance float32, bank string) error {
-	// Checking if the tx is being executed by org1
-	mspID, err := ctx.GetClientIdentity().GetMSPID()
+
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
 	if err != nil {
-		return errors.New("cannot get client's MSP-ID")
+		return err
 	}
-	if !(mspID == "Org1MSP" && bank == "JPMorgan Chase & Co." ||
-		mspID == "Org2MSP" && bank == "Bank of America Corp.") {
-		return fmt.Errorf("you have no access to this Tx")
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return err
 	}
 
 	exists, err := s.AccountExists(ctx, id)
+
 	if err != nil {
 		return err
 	}
@@ -91,17 +134,41 @@ func (s *SmartContract) CreateAccount(ctx contractapi.TransactionContextInterfac
 		Balance: balance,
 		Bank:    bank,
 	}
-	accountJSON, err := json.Marshal(account)
 
+	accountJSON, err := json.Marshal(account)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, accountJSON)
+	err = ctx.GetStub().PutState(account.ID, accountJSON)
+	if err != nil {
+		return fmt.Errorf("failed to put asset in public data: %v", err)
+	}
+
+	// Set the endorsement policy such that an owner org peer is required to endorse future updates
+	endorsingOrgs := []string{clientOrgID}
+	err = setAssetStateBasedEndorsement(ctx, account.ID, endorsingOrgs)
+	if err != nil {
+		return fmt.Errorf("failed setting state based endorsement for buyer and seller: %v", err)
+	}
+
+	return nil
 }
 
 // DeleteAccount deletes an given account from the world state.
 func (s *SmartContract) DeleteAccount(ctx contractapi.TransactionContextInterface, id string) error {
+
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return err
+	}
+
 	exists, err := s.AccountExists(ctx, id)
 
 	if err != nil {
@@ -111,77 +178,53 @@ func (s *SmartContract) DeleteAccount(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("the account %s does not exist", id)
 	}
 
-	//Here we check if the account belongs to the bank that is trying to delete it
-	accountExisting, err := s.ReadAccount(ctx, id)
-	if err != nil {
-		return err
-	}
-	mspID, err := ctx.GetClientIdentity().GetMSPID()
-	if err != nil {
-		return errors.New("cannot get client's MSP-ID")
-	}
-	if (accountExisting.Bank == "JPMorgan Chase & Co." && mspID == "Org1MSP") ||
-		(accountExisting.Bank == "Bank of America Corp." && mspID == "Org2MSP") {
-		return errors.New("account does not belong to the executing org")
-	}
-
 	return ctx.GetStub().DelState(id)
-}
-
-// AccountExists returns true when account with given ID exists in world state
-func (s *SmartContract) AccountExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	accountJSON, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return false, fmt.Errorf("failed to read from world state: %v", err)
-	}
-
-	return accountJSON != nil, nil
 }
 
 func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, fromId, toId string, amount float32) error {
 	// @todo q solo pueda hacer esto el duenyo d la cuenta fuente
 
+	// Get client org id and verify it matches peer org id.
+	// In this scenario, client is only authorized to read/write private data from its own peer.
+	clientOrgID, err := getClientOrgID(ctx)
+	if err != nil {
+		return err
+	}
+	err = verifyClientOrgMatchesPeerOrg(clientOrgID)
+	if err != nil {
+		return err
+	}
+
 	if amount <= 0 {
 		return errors.New("amount must be positive")
 	}
-	fromAccJson, err := ctx.GetStub().GetState(fromId)
+
+	fromAcc, err := s.ReadAccount(ctx, fromId)
 	if err != nil {
-		return fmt.Errorf("failed to read from world state: %v", err)
-	}
-	if fromAccJson == nil {
 		return errors.New("source account doesn't exist")
 	}
-	toAccJson, err := ctx.GetStub().GetState(toId)
+
+	toAcc, err := s.ReadAccount(ctx, toId)
 	if err != nil {
-		return fmt.Errorf("failed to read from world state: %v", err)
-	}
-	if toAccJson == nil {
 		return errors.New("destination account doesn't exist")
 	}
-	var fromAcc Account
-	if err := json.Unmarshal(fromAccJson, &fromAcc); err != nil {
-		return err
-	}
-	if fromAcc.Balance < amount {
-		return fmt.Errorf("insufficient balance: %v", fromAcc.Balance)
-	}
-	var toAcc Account
-	if err := json.Unmarshal(toAccJson, &toAcc); err != nil {
-		return err
-	}
+
 	fromAcc.Balance -= amount
 	toAcc.Balance += amount
 
-	fromAccJson, err = json.Marshal(fromAcc)
+	fromAccJson, err := json.Marshal(fromAcc)
 	if err != nil {
 		return err
 	}
+
 	if err := ctx.GetStub().PutState(fromId, fromAccJson); err != nil {
 		return err
 	}
-	toAccJson, err = json.Marshal(toAcc)
+
+	toAccJson, err := json.Marshal(toAcc)
 	if err != nil {
 		return err
 	}
+
 	return ctx.GetStub().PutState(toId, toAccJson)
 }

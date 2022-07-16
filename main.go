@@ -12,7 +12,9 @@ import (
 )
 
 func main() {
-	accountChaincode, err := contractapi.NewChaincode(&chaincode.SmartContract{})
+	smartContract := new(chaincode.SmartContract)
+
+	accountChaincode, err := contractapi.NewChaincode(smartContract)
 
 	if err != nil {
 		log.Panicf("Error creating account-transfer-basic chaincode: %v", err)
