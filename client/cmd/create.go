@@ -23,41 +23,38 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// transferCmd represents the transfer command
-var transferCmd = &cobra.Command{
-	Use:   "transfer",
-	Short: "Transfers the given amount from the given source account to the given destination account",
-	Long: `"Transfers the given amount from the given source account to the given destination account
-			Recives source, destination and amount, and executes the transaction.`,
+// createCmd represents the create command
+var createCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Creates an account with the given id, balance and bank information",
+	Long: `Creates an account with the given id, balance and bank information.
+			Recives id, balance and bank and create a new account with the given details.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		source := args[0]
-		dest := args[1]
-		var amount float32
-		_, err := fmt.Sscan(args[2], &amount)
-		if err != nil {
-			panic(err)
-		}
+		id := args[0]
+		var balance float32
+		_, err := fmt.Sscan(args[1], &balance)
+		bank := args[2]
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
 			log.Fatalf("Failed to create contract client: %v", err)
 		}
-		log.Println("--> Submit Transaction: Transfer, function transfers funds from one account to another")
-		if err := contract.Transfer(source, dest, amount); err != nil {
+		log.Println("--> Submit Transaction: CreateAccount, function create a new account to the world state with given details")
+		if err := contract.Create(id, balance, bank); err != nil {
 			log.Fatalf("Failed to submit transaction: %v", err)
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(transferCmd)
+	rootCmd.AddCommand(createCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// transferCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// createCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// transferCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

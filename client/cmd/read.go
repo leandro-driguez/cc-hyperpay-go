@@ -16,21 +16,18 @@ limitations under the License.
 package cmd
 
 import (
+	"log"
+
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 // readCmd represents the read command
 var readCmd = &cobra.Command{
 	Use:   "read",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Reads the details of the given account",
+	Long: `Reads the details of the given account.
+			Recives an id transaction and reads its value`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()

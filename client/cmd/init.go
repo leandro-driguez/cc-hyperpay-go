@@ -16,21 +16,18 @@ limitations under the License.
 package cmd
 
 import (
+	"log"
+
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Populates the blockchain with some accounts",
+	Long: `Populates the blockchain, submit an InitLedger transaction 
+			that creates the initial set of accounts.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		contract, err := client.NewHyperPayContract()
 		if err != nil {

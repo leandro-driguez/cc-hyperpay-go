@@ -16,48 +16,47 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
 	"github.com/spf13/cobra"
 )
 
-// transferCmd represents the transfer command
-var transferCmd = &cobra.Command{
-	Use:   "transfer",
-	Short: "Transfers the given amount from the given source account to the given destination account",
-	Long: `"Transfers the given amount from the given source account to the given destination account
-			Recives source, destination and amount, and executes the transaction.`,
+// existsCmd represents the exists command
+var existsCmd = &cobra.Command{
+	Use:   "exists",
+	Short: "Determines whether an account with the given ID exists",
+	Long: `Determines whether an account with the given ID exists.
+			Recives an account id.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		source := args[0]
-		dest := args[1]
-		var amount float32
-		_, err := fmt.Sscan(args[2], &amount)
-		if err != nil {
-			panic(err)
-		}
+		id := args[0]
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
 			log.Fatalf("Failed to create contract client: %v", err)
 		}
-		log.Println("--> Submit Transaction: Transfer, function transfers funds from one account to another")
-		if err := contract.Transfer(source, dest, amount); err != nil {
-			log.Fatalf("Failed to submit transaction: %v", err)
+		log.Println("--> Evaluate Transaction: AccountExists, function returns true if the given account exists in the world state")
+		exists, err := contract.Exists(id)
+		if err != nil {
+			log.Fatalf("Failed to evaluate transaction: %v", err)
+		}
+		if exists {
+			log.Println("The account " + id + " exists")
+		} else {
+			log.Println("The account " + id + " dont exists")
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(transferCmd)
+	rootCmd.AddCommand(existsCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// transferCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// existsCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// transferCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// existsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
