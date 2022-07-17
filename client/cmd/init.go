@@ -18,6 +18,7 @@ package cmd
 import (
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // initCmd represents the init command
@@ -33,10 +34,11 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
-			panic(err)
+			log.Fatalf("Failed to create contract client: %v", err)
 		}
+		log.Println("--> Submit Transaction: InitLedger, function creates the initial set of accounts on the ledger")
 		if err := contract.Init(); err != nil {
-			panic(err)
+			log.Fatalf("Failed to submit transaction: %v", err)
 		}
 	},
 }

@@ -54,6 +54,7 @@ func NewHyperPayContract() (*HyperPayContract, error) {
 	return &HyperPayContract{c: network.GetContract("mycc")}, nil
 }
 
+// Init populates the blockchain with some accounts.
 func (contract *HyperPayContract) Init() error {
 	_, err := contract.c.SubmitTransaction("InitLedger")
 	if err != nil {
@@ -62,6 +63,7 @@ func (contract *HyperPayContract) Init() error {
 	return nil
 }
 
+// Read reads the details of the given account.
 func (contract *HyperPayContract) Read(id string) (*chaincode.Account, error) {
 	result, err := contract.c.EvaluateTransaction("ReadAccount", id)
 	if err != nil {
@@ -75,12 +77,59 @@ func (contract *HyperPayContract) Read(id string) (*chaincode.Account, error) {
 	return &account, nil
 }
 
-func (contract HyperPayContract) Transfer(fromId, toId string, amount float32) error {
+// Transfer transfers the given amount from the given source account to the given destination account.
+func (contract *HyperPayContract) Transfer(fromId, toId string, amount float32) error {
 	_, err := contract.c.SubmitTransaction("Transfer", fromId, toId, fmt.Sprint(amount))
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// Exists determines whether an account with the given ID exists.
+func (contract *HyperPayContract) Exists(id string) (bool, error) {
+	result, err := contract.c.EvaluateTransaction("AccountExists", id)
+	if err != nil {
+		return false, err
+	}
+	var exists bool
+	err = json.Unmarshal(result, &exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+// Create creates an account with the given id, balance and bank information.
+func (contract *HyperPayContract) Create(id string, balance float32, bank string) error {
+	_, err := contract.c.SubmitTransaction("CreateAccount", id, fmt.Sprint(balance), bank)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete deletes the given account.
+func (contract *HyperPayContract) Delete(id string) error {
+	_, err := contract.c.SubmitTransaction("DeleteAccount", id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Txs returns all transactions involving given account.
+func (contract *HyperPayContract) Txs(id string) ([]chaincode.TxRecord, error) {
+	result, err := contract.c.EvaluateTransaction("GetAllTxs", id)
+	if err != nil {
+		return nil, err
+	}
+	var txs []chaincode.TxRecord
+	err = json.Unmarshal(result, &txs)
+	if err != nil {
+		return nil, err
+	}
+	return txs, nil
 }
 
 func populateWallet(wallet *gateway.Wallet) error {

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // transferCmd represents the transfer command
@@ -41,10 +42,11 @@ to quickly create a Cobra application.`,
 		}
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
-			panic(err)
+			log.Fatalf("Failed to create contract client: %v", err)
 		}
+		log.Println("--> Submit Transaction: Transfer, function transfers funds from one account to another")
 		if err := contract.Transfer(source, dest, amount); err != nil {
-			panic(err)
+			log.Fatalf("Failed to submit transaction: %v", err)
 		}
 	},
 }

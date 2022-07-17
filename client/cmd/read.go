@@ -16,9 +16,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // readCmd represents the read command
@@ -35,13 +35,14 @@ to quickly create a Cobra application.`,
 		id := args[0]
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
-			panic(err)
+			log.Fatalf("Failed to create contract client: %v", err)
 		}
+		log.Println("--> Evaluate Transaction: ReadAccount, function reads the value of an account")
 		acc, err := contract.Read(id)
 		if err != nil {
-			panic(err)
+			log.Fatalf("Failed to evaluate transaction: %v", err)
 		}
-		fmt.Println(acc)
+		log.Println(acc)
 	},
 }
 
