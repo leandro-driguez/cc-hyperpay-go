@@ -27,7 +27,7 @@ var readCmd = &cobra.Command{
 	Use:   "read",
 	Short: "Reads the details of the given account",
 	Long: `Reads the details of the given account.
-			receives an id transaction and reads its value`,
+			Receives an id transaction and reads its value`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()

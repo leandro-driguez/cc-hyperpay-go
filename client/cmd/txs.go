@@ -27,7 +27,7 @@ var txsCmd = &cobra.Command{
 	Use:   "txs",
 	Short: "Returns all transactions involving given account",
 	Long: `Returns all transactions involving given account
-			receives an account id and gives the transaction history of the given account.`,
+			Receives an account id and gives the transaction history of the given account.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()
