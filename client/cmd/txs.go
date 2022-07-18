@@ -27,14 +27,14 @@ var txsCmd = &cobra.Command{
 	Use:   "txs",
 	Short: "Returns all transactions involving given account",
 	Long: `Returns all transactions involving given account
-			Recives an account id and gives the transaction history of the given account.`,
+			receives an account id and gives the transaction history of the given account.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
 			log.Fatalf("Failed to create contract client: %v", err)
 		}
-		log.Println("--> Evaluate Transaction: GetAllTxs, function gets transacction history of the given account")
+		log.Println("--> Evaluate Transaction: GetAllTxs, function gets transaction history of the given account")
 		records, err := contract.Txs(id)
 		if err != nil {
 			log.Fatalf("Failed to evaluate transaction: %v", err)

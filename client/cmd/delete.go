@@ -27,7 +27,7 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Deletes the given account",
 	Long: `Deletes the given account.
-	Recives an account and delete it.`,
+	receives an account and delete it.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()

@@ -28,7 +28,7 @@ var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Creates an account with the given id, balance and bank information",
 	Long: `Creates an account with the given id, balance and bank information.
-			Recives id, balance and bank and create a new account with the given details.`,
+			receives id, balance and bank and create a new account with the given details.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		var balance float32

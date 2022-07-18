@@ -28,7 +28,7 @@ var transferCmd = &cobra.Command{
 	Use:   "transfer",
 	Short: "Transfers the given amount from the given source account to the given destination account",
 	Long: `"Transfers the given amount from the given source account to the given destination account
-			Recives source, destination and amount, and executes the transaction.`,
+			receives source, destination and amount, and executes the transaction.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		source := args[0]
 		dest := args[1]

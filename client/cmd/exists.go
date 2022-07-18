@@ -27,7 +27,7 @@ var existsCmd = &cobra.Command{
 	Use:   "exists",
 	Short: "Determines whether an account with the given ID exists",
 	Long: `Determines whether an account with the given ID exists.
-			Recives an account id.`,
+			receives an account id.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()
@@ -42,7 +42,7 @@ var existsCmd = &cobra.Command{
 		if exists {
 			log.Println("The account " + id + " exists")
 		} else {
-			log.Println("The account " + id + " dont exists")
+			log.Println("The account " + id + " doesn't exists")
 		}
 	},
 }
