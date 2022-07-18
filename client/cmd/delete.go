@@ -22,37 +22,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// readCmd represents the read command
-var readCmd = &cobra.Command{
-	Use:   "read",
-	Short: "Reads the details of the given account",
-	Long: `Reads the details of the given account.
-			Receives an id transaction and reads its value`,
+// deleteCmd represents the delete command
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Deletes the given account",
+	Long: `Deletes the given account.
+	Receives an account and delete it.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
 			log.Fatalf("Failed to create contract client: %v", err)
 		}
-		log.Println("--> Evaluate Transaction: ReadAccount, function reads the value of an account")
-		acc, err := contract.Read(id)
-		if err != nil {
-			log.Fatalf("Failed to evaluate transaction: %v", err)
+		log.Println("--> Submit Transaction: DeleteAccount, function deletes the account with the given id from the world state")
+		if err := contract.Delete(id); err != nil {
+			log.Fatalf("Failed to submit transaction: %v", err)
 		}
-		log.Println(acc)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(readCmd)
+	rootCmd.AddCommand(deleteCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// readCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// deleteCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// readCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// deleteCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

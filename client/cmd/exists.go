@@ -22,37 +22,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// readCmd represents the read command
-var readCmd = &cobra.Command{
-	Use:   "read",
-	Short: "Reads the details of the given account",
-	Long: `Reads the details of the given account.
-			Receives an id transaction and reads its value`,
+// existsCmd represents the exists command
+var existsCmd = &cobra.Command{
+	Use:   "exists",
+	Short: "Determines whether an account with the given ID exists",
+	Long: `Determines whether an account with the given ID exists.
+			Receives an account id.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		contract, err := client.NewHyperPayContract()
 		if err != nil {
 			log.Fatalf("Failed to create contract client: %v", err)
 		}
-		log.Println("--> Evaluate Transaction: ReadAccount, function reads the value of an account")
-		acc, err := contract.Read(id)
+		log.Println("--> Evaluate Transaction: AccountExists, function returns true if the given account exists in the world state")
+		exists, err := contract.Exists(id)
 		if err != nil {
 			log.Fatalf("Failed to evaluate transaction: %v", err)
 		}
-		log.Println(acc)
+		if exists {
+			log.Println("The account " + id + " exists")
+		} else {
+			log.Println("The account " + id + " doesn't exists")
+		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(readCmd)
+	rootCmd.AddCommand(existsCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// readCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// existsCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// readCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// existsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
