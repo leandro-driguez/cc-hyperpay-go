@@ -74,10 +74,6 @@ func (s *SmartContract) AccountExists(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return false, fmt.Errorf("failed to read from world state: %v", err)
 	}
-	if accountJSON == nil {
-		return false, fmt.Errorf("the account %s does not exist", accountID)
-	}
-
 	return accountJSON != nil, nil
 }
 
