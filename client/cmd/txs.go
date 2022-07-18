@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
@@ -41,7 +42,11 @@ var txsCmd = &cobra.Command{
 		}
 		log.Println("History of " + id + ": ")
 		for i := 0; i < len(records); i++ {
-			log.Println(records[i])
+			recBytes, err := json.Marshal(records[i])
+			if err != nil {
+				panic(err)
+			}
+			log.Println(string(recBytes))
 		}
 	},
 }

@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/lllrdgz/cc-hyperpay-go/hyperpay-transfer/client"
@@ -39,7 +40,11 @@ var readCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Failed to evaluate transaction: %v", err)
 		}
-		log.Println(acc)
+		accBytes, err := json.Marshal(*acc)
+		if err != nil {
+			panic(err)
+		}
+		log.Println(string(accBytes))
 	},
 }
 
